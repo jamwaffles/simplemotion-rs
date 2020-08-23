@@ -1,0 +1,13 @@
+[package]
+name = "simplemotion"
+description = "Generated SimpleMotionV2 bindings"
+version = "0.1.0"
+authors = ["James Waples <james@wapl.es>"]
+edition = "2018"
+categories = [ "science::robotics" ]
+readme = "./README.md"
+license = "MIT OR Apache-2.0"
+keywords = [ "cnc", "simplemotion", "granite", "argon" ]
+
+[badges]
+circle-ci = { repository = "jamwaffles/simplemotion-rs", branch = "master" }

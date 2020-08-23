@@ -2,4 +2,5 @@
 
 members = [
     "simplemotion-sys",
+    "simplemotion",
 ]
