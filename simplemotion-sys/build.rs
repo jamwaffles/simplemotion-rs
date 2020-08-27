@@ -47,5 +47,6 @@ fn main() {
         .include("SimpleMotionV2/drivers")
         // .warnings(false)
         .define("ENABLE_BUILT_IN_DRIVERS", Some("1"))
+        .define("ENABLE_DEBUG_PRINTS", None)
         .compile("simplemotionv2");
 }
