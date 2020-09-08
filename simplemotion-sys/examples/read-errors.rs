@@ -1,9 +1,9 @@
 use simplemotion_sys::{
-    getCumulativeStatus, smCloseBus, smOpenBus, smRead1Parameter, FLT_COMMUNICATION, FLT_CONFIG,
-    FLT_ENCODER, FLT_FOLLOWERROR, FLT_HARDWARE, FLT_HOST_COMM_ERROR, FLT_INIT, FLT_MOTION,
-    FLT_OVERCURRENT, FLT_OVERTEMP, FLT_OVERVELOCITY, FLT_OVERVOLTAGE, FLT_PROGRAM_OR_MEM,
-    FLT_PSTAGE_FORCED_OFF, FLT_RANGE, FLT_UNDERVOLTAGE, SMP_FAULTS, SMP_STATUS, SM_OK,
-    STAT_BRAKING, STAT_ENABLED, STAT_FAULTSTOP, STAT_FERROR_RECOVERY, STAT_FERROR_WARNING,
+    getCumulativeStatus, smCloseBus, smOpenBus, smRead1Parameter, smSetParameter,
+    FLT_COMMUNICATION, FLT_CONFIG, FLT_ENCODER, FLT_FOLLOWERROR, FLT_HARDWARE, FLT_HOST_COMM_ERROR,
+    FLT_INIT, FLT_MOTION, FLT_OVERCURRENT, FLT_OVERTEMP, FLT_OVERVELOCITY, FLT_OVERVOLTAGE,
+    FLT_PROGRAM_OR_MEM, FLT_PSTAGE_FORCED_OFF, FLT_RANGE, FLT_UNDERVOLTAGE, SMP_FAULTS, SMP_STATUS,
+    SM_OK, STAT_BRAKING, STAT_ENABLED, STAT_FAULTSTOP, STAT_FERROR_RECOVERY, STAT_FERROR_WARNING,
     STAT_HOMING, STAT_INITIALIZED, STAT_PERMANENT_STOP, STAT_QUICK_STOP_ACTIVE, STAT_RUN,
     STAT_SAFE_TORQUE_MODE_ACTIVE, STAT_SERVO_READY, STAT_STANDBY, STAT_STANDING_STILL,
     STAT_STO_ACTIVE, STAT_TARGET_REACHED, STAT_VOLTAGES_OK,
@@ -44,6 +44,11 @@ fn main() -> Result<(), Errors> {
         Ok(result)
     }?;
     println!("Status {}", bus_status);
+
+    // smSetParameter(busHandle,deviceAddress,SMP_FAULTS,0);
+    let result = unsafe { smSetParameter(bus, 1, SMP_FAULTS as i16, 0) };
+
+    println!("Reset result {}", result);
 
     let device_status = {
         let mut s_m_device_side_comm_status = 0;
@@ -91,7 +96,7 @@ fn main() -> Result<(), Errors> {
     }?;
 
     println!(
-        "Device status {:#032b} Status \n{:#?}\nFaults\n{:#?}",
+        "Device status {:#032b}\nStatus \n{:#?}\nFaults\n{:#?}",
         device_status,
         Status::from(device_status as u32),
         Faults::from(device_faults as u32)
