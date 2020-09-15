@@ -1,0 +1,2 @@
+loadusr -Wn argon /home/james/Repositories/simplemotion-rs/target/debug/examples/control-mode-linuxcnc /dev/ttyUSB0
+net control-mode argon.control-mode

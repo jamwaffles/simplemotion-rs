@@ -22,9 +22,12 @@ circle-ci = { repository = "jamwaffles/simplemotion-rs", branch = "master" }
 [dependencies]
 
 [build-dependencies]
-bindgen = "0.54.0"
+bindgen = "0.52.0"
 cc = "1.0.59"
 
 [dev-dependencies]
 thiserror = "1.0.20"
+linuxcnc-hal = { path = "../../linuxcnc-hal-rs/linuxcnc-hal" }
+pretty_env_logger = "0.4.0"
+log = "0.4.11"
 
