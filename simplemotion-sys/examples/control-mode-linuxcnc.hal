@@ -1,2 +1,49 @@
-loadusr -Wn argon /home/james/Repositories/simplemotion-rs/target/debug/examples/control-mode-linuxcnc /dev/ttyUSB0
-net control-mode argon.control-mode
+loadusr -Wn argon /home/james/Repositories/simplemotion-rs/target/debug/examples/control-mode-linuxcnc /dev/ttyUSB1
+
+# Enable index pulse for sim spindle
+sets spindle-index-enable true
+
+# NOTE: Hacked sim_spindle_encoder to load `near_angle`
+# loadrt near names=near_angle
+addf near_angle servo-thread
+setp near_angle.difference 0.1
+
+# NOTE: Hacked sim_spindle_encoder to load `orient_counts_scale`
+# loadrt scale names=orient_counts_scale
+addf orient_counts_scale servo-thread
+
+# NOTE: Hacked sim_spindle_encoder to load `spindle_counts`
+# loadrt scale names=spindle_counts
+addf spindle_counts servo-thread
+
+net orient-enable spindle.0.orient argon.orient-enable
+# i32 test
+# net orient-enable comp_x.time argon.orient-enable
+
+net orient-angle spindle.0.orient-angle argon.orient-angle
+
+# Multiply normalised spindle rotation to encoder counts
+#net orient-angle orient_counts_scale.in
+# 4096 count encoder, 360 degrees in a circle, 4096/360 = 11.37...
+setp orient_counts_scale.gain 11.377777778
+net orient-angle-scaled orient_counts_scale.out
+
+# Scale normalised spindle feedback to encoder counts
+# NOTE: May not be necessary if real encoder gives me counts back
+net spindle-pos spindle_counts.in
+setp spindle_counts.gain 4096
+net spindle-pos-scaled spindle_counts.out
+
+net spindle-pos sim_spindle.position-fb near_angle.in2
+
+net orient-angle spindle.0.orient-angle near_angle.in1
+
+net is-oriented spindle.0.is-oriented near_angle.out
+
+net spindle-speed-cmd argon.spindle-speed-rpm
+
+# net orient-mode motion.spindle-orient-mode orient.mode
+# net orient-enable motion.spindle-orient orient.enable orient-pid.enable
+# net spindle-pos encoder.position orient.position orient-pid.feedback
+# net orient-command orient.command orient-pid.command
+

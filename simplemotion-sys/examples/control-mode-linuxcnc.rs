@@ -6,7 +6,7 @@ use linuxcnc_hal::{
 };
 use simplemotion_sys::{
     getCumulativeStatus, smCloseBus, smOpenBus, smSetParameter, CM_POSITION, CM_VELOCITY,
-    SMP_CONTROL_MODE, SMP_FAULTS,
+    SMP_ABSOLUTE_SETPOINT, SMP_CONTROL_MODE, SMP_FAULTS,
 };
 use std::ffi::CString;
 use std::{
@@ -68,8 +68,11 @@ enum Errors {
 //     Ok(())
 // }
 
+#[derive(Debug)]
 struct Pins {
-    control_mode: InputPin<u32>,
+    orient_enable: InputPin<bool>,
+    orient_angle: InputPin<f64>,
+    spindle_speed_rpm: InputPin<f64>,
 }
 
 impl Resources for Pins {
@@ -77,13 +80,49 @@ impl Resources for Pins {
 
     fn register_resources(comp: &RegisterResources) -> Result<Self, Self::RegisterError> {
         Ok(Pins {
-            control_mode: comp.register_pin("control-mode")?,
+            orient_enable: comp.register_pin("orient-enable")?,
+            orient_angle: comp.register_pin("orient-angle")?,
+            spindle_speed_rpm: comp.register_pin("spindle-speed-rpm")?,
         })
     }
 }
 
+fn init_argon(device: &str) -> Result<i64, Errors> {
+    log::debug!("Open {}", device);
+
+    let bus = {
+        let device = CString::new(device).expect("Failed to convert device to CString");
+
+        let handle = unsafe { smOpenBus(device.as_ptr()) };
+
+        if handle >= 0 {
+            Ok(handle)
+        } else {
+            Err(Errors::OpenFailed(handle))
+        }
+    }?;
+
+    log::debug!("Bus {}", bus);
+
+    let bus_status = {
+        let result = unsafe { getCumulativeStatus(bus) };
+
+        Ok(result)
+    }?;
+
+    log::debug!("Bus status {}", bus_status);
+
+    let result = unsafe { smSetParameter(bus, 1, SMP_FAULTS as i16, 0) };
+
+    log::debug!("Reset done with {}", result);
+
+    Ok(bus)
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
-    println!("Args {:?}", std::env::args());
+    let device = std::env::args().nth(1).expect("Device name/path required");
+
+    let bus = init_argon(&device)?;
 
     pretty_env_logger::init();
 
@@ -92,14 +131,46 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Get a reference to the `Pins` struct
     let pins = comp.resources();
 
+    log::debug!("Pins: {:?}", pins);
+
     let start = Instant::now();
+
+    let mut current_speed = 0.0f64;
 
     // Main control loop
     while !comp.should_exit() {
-        log::info!("Control mode {:?}", pins.control_mode);
+        // log::info!(
+        //     "Orient enable: {:?}, angle {:?}, speed {:?}",
+        //     pins.orient_enable.value(),
+        //     pins.orient_angle.value(),
+        //     pins.spindle_speed_rpm.value()
+        // );
 
-        thread::sleep(Duration::from_millis(1000));
+        // SAFETEY: Default to 0 RPM if some error occurred.
+        let new_speed = *pins.spindle_speed_rpm.value().unwrap_or_else(|e| {
+            log::error!(
+                "Failed to get spindle speed value: {}. Defaulting to 0.0",
+                e
+            );
+
+            &0.0
+        });
+
+        if new_speed != current_speed {
+            current_speed = new_speed;
+
+            log::info!("Changing setpoint to {} RPM", new_speed);
+
+            let result =
+                unsafe { smSetParameter(bus, 1, SMP_ABSOLUTE_SETPOINT as i16, new_speed as i32) };
+
+            log::debug!("Setpoint set with result {}", result);
+        }
+
+        thread::sleep(Duration::from_millis(10));
     }
+
+    unsafe { smCloseBus(bus) };
 
     Ok(())
 }
