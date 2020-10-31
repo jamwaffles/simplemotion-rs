@@ -11,3 +11,8 @@ keywords = [ "cnc", "simplemotion", "granite", "argon" ]
 
 [badges]
 circle-ci = { repository = "jamwaffles/simplemotion-rs", branch = "master" }
+
+[dependencies]
+thiserror = "1.0.21"
+log = "0.4.11"
+simplemotion-sys = { path = "../simplemotion-sys" }
