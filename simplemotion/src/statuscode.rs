@@ -53,7 +53,7 @@ impl From<i32> for StatusCode {
         if value < 0 {
             StatusCode::Unknown
         } else {
-            (value as i32).into()
+            (value as u32).into()
         }
     }
 }

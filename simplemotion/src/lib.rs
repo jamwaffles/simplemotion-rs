@@ -4,6 +4,7 @@ mod status;
 mod statuscode;
 
 pub use faults::Faults;
+pub use parameters::ControlMode;
 pub use status::Status;
 pub use statuscode::StatusCode;
 
@@ -52,7 +53,7 @@ impl Argon {
 
             let handle: i64 = unsafe { smOpenBus(device.as_ptr()) };
 
-            if handle == StatusCode::Ok as i64 {
+            if handle >= 0 {
                 Ok(handle)
             } else {
                 Err(Error::OpenFailed(handle.into()))
@@ -85,7 +86,8 @@ impl Argon {
         let value = value.into();
 
         let result: StatusCode =
-            unsafe { smSetParameter(self.bus_handle, self.address, parameter as i16, 0) }.into();
+            unsafe { smSetParameter(self.bus_handle, self.address, parameter as i16, value) }
+                .into();
 
         log::debug!(
             "Set parameter {:?} to {}. Result: {:?}",
@@ -158,6 +160,16 @@ impl Argon {
     /// Read drive fault status.
     pub fn is_online(&self) -> Result<bool, Error> {
         Ok(self.status()?.run)
+    }
+
+    /// Set the raw setpoint.
+    pub fn set_absolute_setpoint(&self, setpoint: i32) -> Result<(), Error> {
+        self.set_parameter(Parameter::AbsoluteSetpoint, setpoint)
+    }
+
+    /// Set control mode.
+    pub fn set_control_mode(&self, mode: ControlMode) -> Result<(), Error> {
+        self.set_parameter(Parameter::ControlMode, mode as i32)
     }
 }
 
