@@ -1,6 +1,7 @@
 use simplemotion_sys::{
-    CM_NONE, CM_POSITION, CM_TORQUE, CM_VELOCITY, SMP_ABSOLUTE_SETPOINT, SMP_CONTROL_MODE,
-    SMP_FAULTS, SMP_HOMING_CONTROL, SMP_STATUS, SMP_TRAJ_PLANNER_HOMING_OFFSET,
+    CM_NONE, CM_POSITION, CM_TORQUE, CM_VELOCITY, SMP_ABSOLUTE_SETPOINT, SMP_ACTUAL_VELOCITY_FB,
+    SMP_CONTROL_MODE, SMP_ENCODER_PPR, SMP_FAULTS, SMP_HOMING_CONTROL, SMP_PID_FREQUENCY,
+    SMP_STATUS, SMP_TRAJ_PLANNER_HOMING_OFFSET,
 };
 use std::fmt;
 
@@ -13,6 +14,10 @@ pub enum Parameter {
     ControlMode = SMP_CONTROL_MODE as isize,
     HomingControl = SMP_HOMING_CONTROL as isize,
     TrajPlannerHomingOffset = SMP_TRAJ_PLANNER_HOMING_OFFSET as isize,
+    /// Velocity readout.
+    ActualVelocity = SMP_ACTUAL_VELOCITY_FB as isize,
+    EncoderPpr = SMP_ENCODER_PPR as isize,
+    PIDFrequency = SMP_PID_FREQUENCY as isize,
 }
 
 /// Control mode.

@@ -1,13 +1,12 @@
 mod faults;
+mod moving_average;
 mod parameters;
 mod status;
 mod statuscode;
 
 pub use faults::Faults;
+use moving_average::MovingAverage;
 pub use parameters::ControlMode;
-pub use status::Status;
-pub use statuscode::StatusCode;
-
 use parameters::Parameter;
 use simplemotion_sys::{
     getCumulativeStatus, resetCumulativeStatus, smCloseBus, smOpenBus, smRead1Parameter,
@@ -15,7 +14,10 @@ use simplemotion_sys::{
     SM_ERR_BUS, SM_ERR_COMMUNICATION, SM_ERR_LENGTH, SM_ERR_NODEVICE, SM_ERR_PARAMETER, SM_NONE,
     SM_OK,
 };
+pub use status::Status;
+pub use statuscode::StatusCode;
 use std::ffi::CString;
+use std::{convert::TryFrom, num::TryFromIntError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -35,12 +37,23 @@ pub enum Error {
 
     #[error("Failed to reset drive status. Code: {0:?}")]
     ResetStatus(StatusCode),
+
+    #[error("Value conversion failed: {0:?}")]
+    ValueConversion(TryFromIntError),
 }
 
 #[derive(Debug)]
 pub struct Argon {
     address: u8,
     bus_handle: i64,
+    pid_freq: f64,
+
+    /// Counts per revolution.
+    ///
+    /// For quadrature encoders this is 4x the PPR.
+    encoder_counts: f64,
+
+    velocity_rps_avg: MovingAverage,
 }
 
 impl Argon {
@@ -71,10 +84,23 @@ impl Argon {
 
         log::debug!("Bus status {}", bus_status);
 
-        Ok(Self {
+        let mut _self = Self {
             address,
             bus_handle,
-        })
+            pid_freq: 0.0,
+            encoder_counts: 0.0,
+            velocity_rps_avg: MovingAverage::new(10),
+        };
+
+        _self.pid_freq = _self.read_parameter(Parameter::PIDFrequency)?.into();
+        _self.encoder_counts = f64::from(_self.read_parameter(Parameter::EncoderPpr)?) * 4.0;
+
+        Ok(_self)
+    }
+
+    /// Encoder counts.
+    pub fn encoder_counts(&self) -> f64 {
+        self.encoder_counts
     }
 
     /// Set a parameter in the drive.
@@ -163,8 +189,13 @@ impl Argon {
     }
 
     /// Set the raw setpoint.
-    pub fn set_absolute_setpoint(&self, setpoint: i32) -> Result<(), Error> {
+    fn set_absolute_setpoint(&self, setpoint: i32) -> Result<(), Error> {
         self.set_parameter(Parameter::AbsoluteSetpoint, setpoint)
+    }
+
+    /// Get current setpoint value.
+    fn absolute_setpoint(&self) -> Result<i32, Error> {
+        self.read_parameter(Parameter::AbsoluteSetpoint)
     }
 
     /// Set control mode.
@@ -182,6 +213,41 @@ impl Argon {
         self.set_parameter(Parameter::TrajPlannerHomingOffset, offset)?;
 
         self.set_parameter(Parameter::HomingControl, 1)
+    }
+
+    /// Get the current actual raw velocity.
+    ///
+    /// IIUC, this is the number of encoder counts per PID loop period which is usually/always
+    /// 2500Hz or 400uS.
+    fn velocity_raw(&self) -> Result<i32, Error> {
+        self.read_parameter(Parameter::ActualVelocity)
+    }
+
+    /// Get velocity (RPS) setpoint.
+    pub fn setpoint_rps(&self) -> Result<f64, Error> {
+        let feedback: f64 = self.absolute_setpoint()?.into();
+
+        let rps = (feedback * 100.0) / self.encoder_counts();
+
+        log::debug!("Set RPS to {}", rps);
+
+        Ok(rps)
+    }
+
+    /// Set the velocity by RPS value.
+    pub fn set_velocity_rps(&self, rps: f64) -> Result<(), Error> {
+        let setpoint = (rps * self.encoder_counts()) / 100.0;
+
+        self.set_absolute_setpoint(setpoint.round() as i32)
+    }
+
+    /// Get the smoothed RPS (Revolutions Per Second).
+    pub fn velocity_rps(&mut self) -> Result<f64, Error> {
+        let feedback: f64 = self.velocity_raw()?.into();
+
+        let rps = feedback / (self.encoder_counts() / self.pid_freq);
+
+        Ok(self.velocity_rps_avg.feed(rps))
     }
 }
 
