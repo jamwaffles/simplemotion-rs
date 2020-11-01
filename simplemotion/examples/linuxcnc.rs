@@ -20,7 +20,7 @@ struct Pins {
     is_oriented: OutputPin<bool>,
 
     /// Motor RPM.
-    rpm: OutputPin<f64>,
+    spindle_speed_rpm: OutputPin<f64>,
 }
 
 impl Resources for Pins {
@@ -32,7 +32,7 @@ impl Resources for Pins {
             orient_angle: comp.register_pin("orient-angle")?,
             spindle_speed_rps: comp.register_pin("spindle-speed-rps")?,
             is_oriented: comp.register_pin("is-oriented")?,
-            rpm: comp.register_pin("rpm")?,
+            spindle_speed_rpm: comp.register_pin("spindle-speed-rpm")?,
         })
     }
 }
@@ -81,7 +81,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         //     new_velocity_rps
         // );
 
-        pins.rpm.set_value(current_velocity_rps * 60.0)?;
+        pins.spindle_speed_rpm
+            .set_value(current_velocity_rps * 60.0)?;
 
         match state {
             State::SwitchToSpindle => {
