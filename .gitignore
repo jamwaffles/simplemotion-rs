@@ -3,3 +3,5 @@ Cargo.lock
 position_mm.txt
 *.var
 *.var.bak
+*.tbl
+*.tbl.bak

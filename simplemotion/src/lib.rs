@@ -205,13 +205,16 @@ impl Argon {
 
     /// Put the drive into position mode and search for the home (index) pulse.
     ///
-    /// A non-zero offset in encoder counts can be provided to position the shaft at an arbitrary
-    /// angle relative to the index.
-    pub fn home(&self, offset: i32) -> Result<(), Error> {
+    /// A non-zero offset in degrees can be provided to position the shaft at an arbitrary angle
+    /// relative to the index. Homing direction is positive.
+    pub fn home(&self, offset: f64) -> Result<(), Error> {
+        let offset_counts = (self.encoder_counts() / 360.0) * offset;
+
         self.set_control_mode(ControlMode::Position)?;
-
-        self.set_parameter(Parameter::TrajPlannerHomingOffset, offset)?;
-
+        self.set_parameter(
+            Parameter::TrajPlannerHomingOffset,
+            offset_counts.round() as i32,
+        )?;
         self.set_parameter(Parameter::HomingControl, 1)
     }
 
