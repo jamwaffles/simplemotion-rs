@@ -20,13 +20,13 @@ net orient-enable spindle.0.orient argon.orient-enable
 # i32 test
 # net orient-enable comp_x.time argon.orient-enable
 
-net orient-angle spindle.0.orient-angle argon.orient-angle
+# net orient-angle spindle.0.orient-angle
 
 # Multiply normalised spindle rotation to encoder counts
-#net orient-angle orient_counts_scale.in
+net orient-angle orient_counts_scale.in spindle.0.orient-angle
 # 4096 count encoder, 360 degrees in a circle, 4096/360 = 11.37...
 setp orient_counts_scale.gain 11.377777778
-net orient-angle-scaled orient_counts_scale.out
+net orient-angle-scaled orient_counts_scale.out argon.orient-angle
 
 # Scale normalised spindle feedback to encoder counts
 # NOTE: May not be necessary if real encoder gives me counts back

@@ -2,7 +2,7 @@ use linuxcnc_hal::{
     error::PinRegisterError, hal_pin::InputPin, prelude::*, HalComponent, RegisterResources,
     Resources,
 };
-use simplemotion::Argon;
+use simplemotion::{Argon, ControlMode};
 use std::{error::Error, thread, time::Duration};
 
 #[derive(Debug)]
@@ -44,29 +44,78 @@ fn main() -> Result<(), Box<dyn Error>> {
     log::debug!("Pins: {:?}", pins);
 
     let mut current_speed = 0.0f64;
+    let mut current_pos = 0.0f64;
+    let mut current_mode = ControlMode::Velocity;
+
+    argon.set_control_mode(current_mode)?;
 
     // Main control loop
     while !comp.should_exit() {
-        // SAFETEY: Default to 0 RPM if some error occurred.
-        let new_speed = *pins.spindle_speed_rpm.value().unwrap_or_else(|e| {
-            log::error!(
-                "Failed to get spindle speed value: {}. Defaulting to 0.0",
-                e
-            );
+        let new_mode = if *pins.orient_enable.value()? {
+            ControlMode::Position
+        } else {
+            ControlMode::Velocity
+        };
 
-            &0.0
-        });
+        if new_mode != current_mode {
+            log::debug!("Changing control mode to {}", new_mode);
 
-        if new_speed != current_speed {
-            current_speed = new_speed;
-
-            log::info!("Changing setpoint to {} RPM", new_speed);
-
-            argon.set_absolute_setpoint(new_speed as i32)?;
+            argon.set_control_mode(new_mode)?;
+            current_mode = new_mode;
         }
 
-        thread::sleep(Duration::from_millis(10));
+        match current_mode {
+            ControlMode::Velocity => {
+                // SAFETEY: Default to 0 RPM if some error occurred.
+                let new_speed = *pins.spindle_speed_rpm.value().unwrap_or_else(|e| {
+                    log::error!(
+                        "Failed to get spindle speed value: {}. Defaulting to 0.0",
+                        e
+                    );
+
+                    &0.0
+                });
+
+                if new_speed != current_speed {
+                    current_speed = new_speed;
+
+                    log::info!("Changing setpoint to {} RPM", new_speed);
+
+                    argon.set_absolute_setpoint(new_speed as i32)?;
+                }
+            }
+            ControlMode::Position => {
+                // SAFETEY: Default to current pos (no movement) if error occurred
+                let new_pos = *pins.orient_angle.value().unwrap_or_else(|e| {
+                    log::error!(
+                        "Failed to get spindle speed value: {}. Defaulting to 0.0",
+                        e
+                    );
+
+                    &0.0
+                });
+
+                log::debug!("{:?}", argon.status()?.homing);
+
+                if new_pos != current_pos {
+                    current_pos = new_pos;
+
+                    // log::info!("Changing setpoint to {}", new_pos);
+
+                    // argon.set_absolute_setpoint(new_pos as i32)?;
+                    log::debug!("Homing");
+                    argon.home(0)?;
+                }
+            }
+            mode => panic!("Unsupported control mode {}", mode),
+        }
+
+        thread::sleep(Duration::from_millis(50));
     }
+
+    // Bare minimum safe state on shutdown.
+    // FIXME: Check if I need to set anything else.
+    argon.set_absolute_setpoint(0)?;
 
     Ok(())
 }
