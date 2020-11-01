@@ -16,8 +16,8 @@ use simplemotion_sys::{
 };
 pub use status::Status;
 pub use statuscode::StatusCode;
-use std::ffi::CString;
 use std::{convert::TryFrom, num::TryFromIntError};
+use std::{convert::TryInto, ffi::CString};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -131,6 +131,9 @@ impl Argon {
     }
 
     /// Read a parameter in the drive.
+    ///
+    /// Note that this is returned as an `i32` however some values are shorter than the 4 bytes
+    /// consumed by it. Converting to bytes then into the correct type may be required.
     fn read_parameter(&self, parameter: Parameter) -> Result<i32, Error> {
         // TODO: Check that bus is open
 
@@ -222,8 +225,14 @@ impl Argon {
     ///
     /// IIUC, this is the number of encoder counts per PID loop period which is usually/always
     /// 2500Hz or 400uS.
-    fn velocity_raw(&self) -> Result<i32, Error> {
-        self.read_parameter(Parameter::ActualVelocity)
+    fn velocity_raw(&self) -> Result<i16, Error> {
+        let raw = self.read_parameter(Parameter::ActualVelocity)?;
+
+        let bytes = raw.to_le_bytes();
+
+        let value_bytes = bytes[0..2].try_into().unwrap();
+
+        Ok(i16::from_le_bytes(value_bytes))
     }
 
     /// Get velocity (RPS) setpoint.
@@ -246,7 +255,7 @@ impl Argon {
 
     /// Get the smoothed RPS (Revolutions Per Second).
     pub fn velocity_rps(&mut self) -> Result<f64, Error> {
-        let feedback: f64 = self.velocity_raw()?.into();
+        let feedback: f64 = dbg!(self.velocity_raw()?).into();
 
         let rps = feedback / (self.encoder_counts() / self.pid_freq);
 
