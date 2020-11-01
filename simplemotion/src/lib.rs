@@ -37,6 +37,7 @@ pub enum Error {
     ResetStatus(StatusCode),
 }
 
+#[derive(Debug)]
 pub struct Argon {
     address: u8,
     bus_handle: i64,
@@ -141,13 +142,12 @@ impl Argon {
 
     /// Get cumulative drive status since last reset.
     pub fn status(&self) -> Result<Status, Error> {
-        let result = unsafe { getCumulativeStatus(self.bus_handle) };
+        // let result = unsafe { getCumulativeStatus(self.bus_handle) };
+        let result = self.read_parameter(Parameter::Status)?;
 
-        if result == StatusCode::Ok as i32 {
-            Ok(Status::from(result as u32))
-        } else {
-            Err(Error::GetStatus(result.into()))
-        }
+        log::trace!("Raw status result {} {:0b}", result, result);
+
+        Ok(Status::from(result as u32))
     }
 
     /// Get drive faults.
@@ -170,6 +170,18 @@ impl Argon {
     /// Set control mode.
     pub fn set_control_mode(&self, mode: ControlMode) -> Result<(), Error> {
         self.set_parameter(Parameter::ControlMode, mode as i32)
+    }
+
+    /// Put the drive into position mode and search for the home (index) pulse.
+    ///
+    /// A non-zero offset in encoder counts can be provided to position the shaft at an arbitrary
+    /// angle relative to the index.
+    pub fn home(&self, offset: i32) -> Result<(), Error> {
+        self.set_control_mode(ControlMode::Position)?;
+
+        self.set_parameter(Parameter::TrajPlannerHomingOffset, offset)?;
+
+        self.set_parameter(Parameter::HomingControl, 1)
     }
 }
 
