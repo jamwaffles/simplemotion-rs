@@ -39,11 +39,11 @@ impl Resources for Pins {
 
 #[derive(Debug, Copy, Clone)]
 enum State {
+    Idle,
     SwitchToSpindle,
     Spindle,
     SwitchToOrient,
     Orienting,
-    Oriented,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -66,7 +66,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     log::debug!("Pins: {:?}", pins);
 
     // Initial state on startup.
-    let mut state = State::SwitchToSpindle;
+    let mut state = State::Idle;
 
     // Main control loop
     while !comp.should_exit() {
@@ -76,17 +76,21 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         let orient_enable = *pins.orient_enable.value()?;
 
-        // log::trace!(
-        //     "RPS: Setpoint {}, current velocity {}, new velocity {}",
-        //     current_velocity_setpoint_rps,
-        //     current_velocity_rps,
-        //     new_velocity_rps
-        // );
-
         pins.spindle_speed_rpm
             .set_value(current_velocity_rps * 60.0)?;
 
         match state {
+            State::Idle => {
+                if orient_enable {
+                    pins.is_oriented.set_value(false)?;
+
+                    state = State::SwitchToOrient;
+                } else if new_velocity_rps != 0.0 {
+                    pins.is_oriented.set_value(false)?;
+
+                    state = State::SwitchToSpindle;
+                }
+            }
             State::SwitchToSpindle => {
                 log::trace!("Switching to spindle mode...");
 
@@ -101,7 +105,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     continue;
                 }
 
-                if new_velocity_rps != current_velocity_setpoint_rps {
+                if (new_velocity_rps - current_velocity_setpoint_rps).abs() > 0.0001 {
                     log::debug!(
                         "Change setpoint from {} to {}",
                         current_velocity_setpoint_rps,
@@ -139,25 +143,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                 if !argon.status()?.homing {
                     pins.is_oriented.set_value(true)?;
 
-                    state = State::Oriented
-                }
-            }
-            State::Oriented => {
-                log::trace!("Oriented! Orient enable: {}", orient_enable);
-
-                if orient_enable {
-                    pins.is_oriented.set_value(false)?;
-
-                    state = State::SwitchToOrient;
-                } else if new_velocity_rps > 0.0 {
-                    pins.is_oriented.set_value(false)?;
-
-                    state = State::SwitchToSpindle;
+                    state = State::Idle
                 }
             }
         }
 
-        thread::sleep(Duration::from_millis(50));
+        thread::sleep(Duration::from_millis(10));
     }
 
     // Bare minimum safe state on shutdown.
