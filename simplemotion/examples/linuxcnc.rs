@@ -58,6 +58,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut argon = Argon::connect(&device, address)?;
 
+    argon.clear_faults()?;
+
     let comp: HalComponent<Pins> = HalComponent::new("argon")?;
     let pins = comp.resources();
 
