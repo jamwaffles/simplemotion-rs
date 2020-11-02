@@ -1,11 +1,9 @@
 mod faults;
-mod moving_average;
 mod parameters;
 mod status;
 mod statuscode;
 
 pub use faults::Faults;
-use moving_average::MovingAverage;
 pub use parameters::ControlMode;
 use parameters::Parameter;
 use simplemotion_sys::{
@@ -52,8 +50,6 @@ pub struct Argon {
     ///
     /// For quadrature encoders this is 4x the PPR.
     encoder_counts: f64,
-
-    velocity_rps_avg: MovingAverage,
 }
 
 impl Argon {
@@ -89,7 +85,6 @@ impl Argon {
             bus_handle,
             pid_freq: 0.0,
             encoder_counts: 0.0,
-            velocity_rps_avg: MovingAverage::new(10),
         };
 
         _self.pid_freq = _self.read_parameter(Parameter::PIDFrequency)?.into();
@@ -253,13 +248,13 @@ impl Argon {
         self.set_absolute_setpoint(setpoint.round() as i32)
     }
 
-    /// Get the smoothed RPS (Revolutions Per Second).
+    /// Get the actual RPS (Revolutions Per Second).
     pub fn velocity_rps(&mut self) -> Result<f64, Error> {
-        let feedback: f64 = dbg!(self.velocity_raw()?).into();
+        let feedback: f64 = self.velocity_raw()?.into();
 
         let rps = feedback / (self.encoder_counts() / self.pid_freq);
 
-        Ok(self.velocity_rps_avg.feed(rps))
+        Ok(rps)
     }
 }
 
