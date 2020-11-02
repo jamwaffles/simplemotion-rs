@@ -8,13 +8,11 @@ pub use parameters::ControlMode;
 use parameters::Parameter;
 use simplemotion_sys::{
     getCumulativeStatus, resetCumulativeStatus, smCloseBus, smOpenBus, smRead1Parameter,
-    smSetParameter, CM_POSITION, CM_VELOCITY, SMP_ABSOLUTE_SETPOINT, SMP_CONTROL_MODE, SMP_FAULTS,
-    SM_ERR_BUS, SM_ERR_COMMUNICATION, SM_ERR_LENGTH, SM_ERR_NODEVICE, SM_ERR_PARAMETER, SM_NONE,
-    SM_OK,
+    smSetParameter,
 };
 pub use status::Status;
 pub use statuscode::StatusCode;
-use std::{convert::TryFrom, num::TryFromIntError};
+use std::num::TryFromIntError;
 use std::{convert::TryInto, ffi::CString};
 
 #[derive(Debug, thiserror::Error)]
