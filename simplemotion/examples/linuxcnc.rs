@@ -63,7 +63,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let comp: HalComponent<Pins> = HalComponent::new("argon")?;
     let pins = comp.resources();
 
-    log::debug!("Pins: {:?}", pins);
+    log::trace!("Pins: {:?}", pins);
 
     // Initial state on startup.
     let mut state = State::Idle;
@@ -106,7 +106,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
 
                 if (new_velocity_rps - current_velocity_setpoint_rps).abs() > 0.0001 {
-                    log::debug!(
+                    log::trace!(
                         "Change setpoint from {} to {}",
                         current_velocity_setpoint_rps,
                         new_velocity_rps,
@@ -116,10 +116,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
             }
             State::SwitchToOrient => {
-                // let current_velocity = argon.velocity()?;
-
-                // log::trace!("Spindle velocity {}", current_velocity_rps);
-
                 log::trace!(
                     "Switching to orient... spindle vel: {}",
                     current_velocity_rps
