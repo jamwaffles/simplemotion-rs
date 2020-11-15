@@ -3,25 +3,32 @@
     <labelframe text="Argon Spindle Drive">
         <font>("Helvetica",12)</font>
         <table>
-            <!-- <tablerow/>
-            <tablespan columns="2"/>
-            <tablesticky sticky="nsew" />
-            <label>
-                <text>" "</text>
-                <font>("Helvetica",2)</font>
-            </label>
             <tablerow/>
             <tablesticky sticky="w" />
             <label>
-                <text>"Comms ok"</text>
+                <text>"Orient enable"</text>
             </label>
             <tablesticky sticky="e" />
             <led>
-                <halpin>"comm-ok"</halpin>
+                <halpin>"orient-enable"</halpin>
                 <size>"10"</size>
                 <on_color>"green"</on_color>
-                <off_color>"red"</off_color>
+                <off_color>"gray"</off_color>
             </led>
+
+            <tablerow/>
+            <tablesticky sticky="w" />
+            <label>
+                <text>"Is oriented"</text>
+            </label>
+            <tablesticky sticky="e" />
+            <led>
+                <halpin>"is-oriented"</halpin>
+                <size>"10"</size>
+                <on_color>"green"</on_color>
+                <off_color>"gray"</off_color>
+            </led>
+
             <tablerow/>
             <tablesticky sticky="w" />
             <label>
@@ -40,7 +47,7 @@
             <label>
                 <text>"RPM"</text>
             </label>
-            <tablerow /> -->
+            <tablerow />
             <bar>
                 <halpin>"spindle-speed-rpm"</halpin>
                 <size>250</size>
@@ -79,6 +86,5 @@
             </bar> -->
 
         </table>
-
     </labelframe>
 </pyvcp>

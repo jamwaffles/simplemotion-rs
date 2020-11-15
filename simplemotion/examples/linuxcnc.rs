@@ -19,8 +19,11 @@ struct Comp {
     /// Flag to signal that the orient is complete.
     is_oriented: OutputPin<bool>,
 
-    /// Motor RPM.
-    spindle_speed_rpm: OutputPin<f64>,
+    /// Current measured motor RPS.
+    spindle_fb_rps: OutputPin<f64>,
+
+    /// Current measured motor RPM.
+    spindle_fb_rpm: OutputPin<f64>,
 }
 
 impl Resources for Comp {
@@ -32,10 +35,14 @@ impl Resources for Comp {
             orient_angle: comp.register_pin("orient-angle")?,
             spindle_speed_rps: comp.register_pin("spindle-speed-rps")?,
             is_oriented: comp.register_pin("is-oriented")?,
-            spindle_speed_rpm: comp.register_pin("spindle-speed-rpm")?,
+            spindle_fb_rps: comp.register_pin("spindle-fb-rps")?,
+            spindle_fb_rpm: comp.register_pin("spindle-fb-rpm")?,
         })
     }
 }
+
+/// Update interval delay in ms
+const UPDATE_INTERVAL: u64 = 10;
 
 #[derive(Debug, Copy, Clone)]
 enum State {
@@ -76,8 +83,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         let orient_enable = *pins.orient_enable.value()?;
 
-        pins.spindle_speed_rpm
-            .set_value(current_velocity_rps * 60.0)?;
+        pins.spindle_fb_rps.set_value(current_velocity_rps)?;
+        pins.spindle_fb_rpm.set_value(current_velocity_rps * 60.0)?;
 
         match state {
             State::Idle => {
@@ -144,7 +151,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         }
 
-        thread::sleep(Duration::from_millis(10));
+        thread::sleep(Duration::from_millis(UPDATE_INTERVAL));
     }
 
     // Bare minimum safe state on shutdown.

@@ -1,1 +1,4 @@
-net panel-rpm pyvcp.spindle-speed-rpm argon.spindle-speed-rpm
+net spindle-fb-rpm => pyvcp.spindle-speed-rpm
+net spindle-at-speed => pyvcp.spindle-at-speed
+net orient-enable => pyvcp.orient-enable
+net is-oriented => pyvcp.is-oriented
