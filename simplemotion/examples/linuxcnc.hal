@@ -17,7 +17,7 @@ addf orient_counts_scale servo-thread
 addf spindle_counts servo-thread
 
 net orient-enable spindle.0.orient argon.orient-enable
-net orient-enable iocontrol.0.tool-prepare
+# net orient-enable iocontrol.0.tool-prepare
 # i32 test
 # net orient-enable comp_x.time argon.orient-enable
 net spindle-orient-angle spindle.0.orient-angle argon.orient-angle

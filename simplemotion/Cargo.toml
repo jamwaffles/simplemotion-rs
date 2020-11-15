@@ -18,5 +18,9 @@ log = "0.4.11"
 simplemotion-sys = { path = "../simplemotion-sys" }
 
 [dev-dependencies]
-linuxcnc-hal = { path = "../../linuxcnc-hal-rs/linuxcnc-hal" }
 pretty_env_logger = "0.4.0"
+
+[dev-dependencies.linuxcnc-hal]
+version = "0.1.3"
+path = "../../linuxcnc-hal-rs/linuxcnc-hal"
+

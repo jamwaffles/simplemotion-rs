@@ -5,5 +5,3 @@ members = [
     "simplemotion",
 ]
 
-[patch.crates-io]
-linuxcnc-hal-sys = { path = "../linuxcnc-hal-rs/linuxcnc-hal-sys" }

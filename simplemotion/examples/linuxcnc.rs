@@ -6,7 +6,7 @@ use simplemotion::{Argon, ControlMode};
 use std::{error::Error, thread, time::Duration};
 
 #[derive(Debug)]
-struct Pins {
+struct Comp {
     /// Whether to start orienting the spindle or not.
     orient_enable: InputPin<bool>,
 
@@ -23,11 +23,11 @@ struct Pins {
     spindle_speed_rpm: OutputPin<f64>,
 }
 
-impl Resources for Pins {
+impl Resources for Comp {
     type RegisterError = PinRegisterError;
 
     fn register_resources(comp: &RegisterResources) -> Result<Self, Self::RegisterError> {
-        Ok(Pins {
+        Ok(Comp {
             orient_enable: comp.register_pin("orient-enable")?,
             orient_angle: comp.register_pin("orient-angle")?,
             spindle_speed_rps: comp.register_pin("spindle-speed-rps")?,
@@ -60,7 +60,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     argon.clear_faults()?;
 
-    let comp: HalComponent<Pins> = HalComponent::new("argon")?;
+    let comp: HalComponent<Comp> = HalComponent::new("argon")?;
     let pins = comp.resources();
 
     log::trace!("Pins: {:?}", pins);
