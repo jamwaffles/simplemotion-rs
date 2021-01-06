@@ -17,9 +17,12 @@ Please consider [becoming a sponsor](https://github.com/sponsors/jamwaffles/) so
 
 # Example
 
-```rust
-// TODO :( sorry
-```
+Please see the `examples/` directory.
+
+The examples use [`linuxcnc-hal`](https://crates.io/crates/linuxcnc-hal), which requires the LinuxCNC source code to compile.
+
+1. Clone https://github.com/linuxcnc/linuxcnc
+2. Build the examples in this repository with `LINUXCNC_SRC=/path/to/linuxcnc/source/code cargo build --examples`
 
 ## License
 
