@@ -258,11 +258,10 @@ impl Argon {
 
     /// Scale RPS value to drive setpoint.
     fn rps_to_setpoint(&self, rps: f64) -> f64 {
-        // TODO: Can this be calculated from other values? I already have `self.velocity_limit`...
-        // Max velocity is 100 RPS (6k RPM)
-        let max_rps = 100.0;
+        let max_velocity =
+            (self.velocity_limit * self.pid_freq) / (self.encoder_counts() * 4.0 * self.input_div);
 
-        (rps / max_rps) * self.velocity_limit * (self.input_mul / self.input_div)
+        (rps / max_velocity) * self.velocity_limit * (self.input_mul / self.input_div)
     }
 
     /// Set the velocity by RPS value.
