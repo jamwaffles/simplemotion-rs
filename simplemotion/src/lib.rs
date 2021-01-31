@@ -48,6 +48,15 @@ pub struct Argon {
     ///
     /// For quadrature encoders, multiply this by 4 to get the equivalent PPR.
     encoder_counts: f64,
+
+    /// Read from `[CVL]`
+    velocity_limit: f64,
+
+    /// Read from `[MUL]`
+    input_mul: f64,
+
+    /// Read from `[DIV]`
+    input_div: f64,
 }
 
 impl Argon {
@@ -83,12 +92,18 @@ impl Argon {
             bus_handle,
             pid_freq: 0.0,
             encoder_counts: 0.0,
+            velocity_limit: 0.0,
+            input_mul: 0.0,
+            input_div: 0.0,
         };
 
         _self.pid_freq = _self.read_parameter(Parameter::PIDFrequency)?.into();
         _self.encoder_counts = f64::from(_self.read_parameter(Parameter::EncoderPpr)?);
+        _self.velocity_limit = f64::from(_self.read_parameter(Parameter::VelocityLImit)?);
+        _self.input_mul = f64::from(_self.read_parameter(Parameter::InputMul)?);
+        _self.input_div = f64::from(_self.read_parameter(Parameter::InputDiv)?);
 
-        log::debug!("Encoder counts: {}, PID freq: {}", _self.encoder_counts, _self.pid_freq);
+        log::debug!("Initialised: {:#?}", _self);
 
         Ok(_self)
     }
@@ -241,9 +256,18 @@ impl Argon {
         Ok(rps)
     }
 
+    /// Scale RPS value to drive setpoint.
+    fn rps_to_setpoint(&self, rps: f64) -> f64 {
+        // TODO: Can this be calculated from other values? I already have `self.velocity_limit`...
+        // Max velocity is 100 RPS (6k RPM)
+        let max_rps = 100.0;
+
+        (rps / max_rps) * self.velocity_limit * (self.input_mul / self.input_div)
+    }
+
     /// Set the velocity by RPS value.
     pub fn set_velocity_rps(&self, rps: f64) -> Result<(), Error> {
-        let setpoint = (rps * self.encoder_counts()) / 100.0;
+        let setpoint = self.rps_to_setpoint(rps);
 
         self.set_absolute_setpoint(setpoint.round() as i32)
     }
