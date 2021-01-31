@@ -44,9 +44,9 @@ pub struct Argon {
     bus_handle: i64,
     pid_freq: f64,
 
-    /// Encoder pulses per revolution.
+    /// Encoder counts per revolution.
     ///
-    /// For quadrature encoders, multiply this by 4 to get the equivalent PPR.
+    /// This value is multiplied by 4 to account for quadrature encoders.
     encoder_counts: f64,
 
     /// Read from `[CVL]`
@@ -98,7 +98,7 @@ impl Argon {
         };
 
         _self.pid_freq = _self.read_parameter(Parameter::PIDFrequency)?.into();
-        _self.encoder_counts = f64::from(_self.read_parameter(Parameter::EncoderPpr)?);
+        _self.encoder_counts = f64::from(_self.read_parameter(Parameter::EncoderPpr)?) * 4.0;
         _self.velocity_limit = f64::from(_self.read_parameter(Parameter::VelocityLImit)?);
         _self.input_mul = f64::from(_self.read_parameter(Parameter::InputMul)?);
         _self.input_div = f64::from(_self.read_parameter(Parameter::InputDiv)?);
@@ -249,9 +249,9 @@ impl Argon {
     pub fn setpoint_rps(&self) -> Result<f64, Error> {
         let feedback: f64 = self.absolute_setpoint()?.into();
 
-        let rps = (feedback * 100.0) / self.encoder_counts();
+        let rps = (feedback * self.pid_freq) / (self.encoder_counts());
 
-        log::trace!("Set RPS to {}", rps);
+        log::trace!("Feedback RPS {}", rps);
 
         Ok(rps)
     }
@@ -259,7 +259,7 @@ impl Argon {
     /// Scale RPS value to drive setpoint.
     fn rps_to_setpoint(&self, rps: f64) -> f64 {
         let max_velocity =
-            (self.velocity_limit * self.pid_freq) / (self.encoder_counts() * 4.0 * self.input_div);
+            (self.velocity_limit * self.pid_freq) / (self.encoder_counts() * self.input_div);
 
         (rps / max_velocity) * self.velocity_limit * (self.input_mul / self.input_div)
     }
