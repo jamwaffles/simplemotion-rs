@@ -44,9 +44,9 @@ pub struct Argon {
     bus_handle: i64,
     pid_freq: f64,
 
-    /// Counts per revolution.
+    /// Encoder pulses per revolution.
     ///
-    /// For quadrature encoders this is 4x the PPR.
+    /// For quadrature encoders, multiply this by 4 to get the equivalent PPR.
     encoder_counts: f64,
 }
 
@@ -86,7 +86,7 @@ impl Argon {
         };
 
         _self.pid_freq = _self.read_parameter(Parameter::PIDFrequency)?.into();
-        _self.encoder_counts = f64::from(_self.read_parameter(Parameter::EncoderPpr)?) * 4.0;
+        _self.encoder_counts = f64::from(_self.read_parameter(Parameter::EncoderPpr)?);
 
         Ok(_self)
     }
