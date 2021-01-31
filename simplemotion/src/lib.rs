@@ -88,6 +88,8 @@ impl Argon {
         _self.pid_freq = _self.read_parameter(Parameter::PIDFrequency)?.into();
         _self.encoder_counts = f64::from(_self.read_parameter(Parameter::EncoderPpr)?);
 
+        log::debug!("Encoder counts: {}, PID freq: {}", _self.encoder_counts, _self.pid_freq);
+
         Ok(_self)
     }
 
@@ -109,7 +111,7 @@ impl Argon {
             unsafe { smSetParameter(self.bus_handle, self.address, parameter as i16, value) }
                 .into();
 
-        log::debug!(
+        log::trace!(
             "Set parameter {:?} to {}. Result: {:?}",
             parameter,
             value,
@@ -137,7 +139,7 @@ impl Argon {
         }
         .into();
 
-        log::debug!("Read parameter {:?}. Got value {:?}", parameter, output);
+        log::trace!("Read parameter {:?}. Got value {:?}", parameter, output);
 
         if result.is_ok() {
             Ok(output)
@@ -234,7 +236,7 @@ impl Argon {
 
         let rps = (feedback * 100.0) / self.encoder_counts();
 
-        log::debug!("Set RPS to {}", rps);
+        log::trace!("Set RPS to {}", rps);
 
         Ok(rps)
     }
