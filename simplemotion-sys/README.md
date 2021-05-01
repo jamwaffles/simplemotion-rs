@@ -19,17 +19,20 @@ Please consider [becoming a sponsor](https://github.com/sponsors/jamwaffles/) so
 
 # Example
 
-More examples can be found in the `examples/` folder.
-
-```rust,no_run
-// TODO :( sorry
-```
+More examples can be found in `simplemotion/examples` and `simplemotion-sys/examples`.
 
 # Development
 
 ## Setup
 
 [`bindgen`](https://github.com/rust-lang/rust-bindgen) must be set up correctly. Follow the [requirements section of its docs](https://rust-lang.github.io/rust-bindgen/requirements.html).
+
+The simplemotion bindings are included as a Git submodule:
+
+```bash
+git submodule init
+git submodule update
+```
 
 ## Build
 
@@ -47,20 +50,17 @@ cargo test
 
 ## Build docs
 
-The docs make heavy use of [intra-rustdoc-links](https://rust-lang.github.io/rfcs/1946-intra-rustdoc-links.html). To get the links to render correctly, run with nightly:
-
 ```bash
-rustup toolchain add nightly
-cargo +nightly doc
+cargo doc --open
 ```
 
 ## License
 
 Licensed under either of
 
--   Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or
-    http://www.apache.org/licenses/LICENSE-2.0)
--   MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or
+  http://www.apache.org/licenses/LICENSE-2.0)
+- MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
 
 at your option.
 
