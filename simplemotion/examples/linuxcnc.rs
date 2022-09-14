@@ -57,14 +57,32 @@ enum State {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    pretty_env_logger::init();
+    let level = std::env::var("ARGON_LOG_LEVEL")
+        .unwrap_or("info".to_string())
+        .parse()
+        .unwrap_or(log::LevelFilter::Info);
 
+    rtapi_logger::init(level);
+
+    match inner() {
+        Ok(res) => Ok(res),
+        Err(e) => {
+            log::error!("{e}");
+
+            Err(e)
+        }
+    }
+}
+
+fn inner() -> Result<(), Box<dyn Error>> {
     let device = std::env::args().nth(1).expect("Device name/path required");
     let address: u8 = std::env::args()
         .nth(2)
         .expect("Device address is required")
         .parse()
         .expect("Device address must be a number from 1 - 255");
+
+    log::info!("Starting Argon driver using device {device}, drive address {address}");
 
     let mut argon = Argon::connect(&device, address)?;
 

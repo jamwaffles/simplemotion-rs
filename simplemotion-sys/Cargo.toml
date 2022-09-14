@@ -32,4 +32,4 @@ log = "0.4.11"
 
 [dev-dependencies.linuxcnc-hal]
 version = "0.2.0"
-# path = "../../linuxcnc-hal-rs/linuxcnc-hal"
+path = "../../linuxcnc-hal-rs/linuxcnc-hal"
