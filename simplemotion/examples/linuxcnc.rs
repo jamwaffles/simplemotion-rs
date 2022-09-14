@@ -1,3 +1,6 @@
+// NOTE: Uncomment the `// ONLY required for non-realtime builds` section in
+// `linuxcnc-hal-rs/linuxcnc-hal-sys/build.rs` to make this example link properly.
+
 use linuxcnc_hal::{
     error::PinRegisterError, hal_pin::InputPin, hal_pin::OutputPin, prelude::*, HalComponent,
     RegisterResources, Resources,
