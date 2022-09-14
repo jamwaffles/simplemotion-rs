@@ -3,7 +3,7 @@ name = "simplemotion-sys"
 description = "Generated SimpleMotionV2 bindings"
 version = "0.1.0"
 authors = ["James Waples <james@wapl.es>"]
-edition = "2018"
+edition = "2021"
 categories = [ "external-ffi-bindings", "science::robotics" ]
 readme = "./README.md"
 license = "MIT OR Apache-2.0"
@@ -22,7 +22,7 @@ circle-ci = { repository = "jamwaffles/simplemotion-rs", branch = "master" }
 [dependencies]
 
 [build-dependencies]
-bindgen = "0.52.0"
+bindgen = "0.60.1"
 cc = "1.0.59"
 
 [dev-dependencies]
