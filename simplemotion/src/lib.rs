@@ -231,6 +231,11 @@ impl Argon {
         self.set_parameter(Parameter::HomingControl, 1)
     }
 
+    pub fn set_homing_complete(&self) -> Result<(), Error> {
+        // TODO: Can I move this into `home()` and call it before all the other methods?
+        self.set_parameter(Parameter::HomingControl, 0)
+    }
+
     /// Get the current actual raw velocity.
     ///
     /// IIUC, this is the number of encoder counts per PID loop period which is usually/always

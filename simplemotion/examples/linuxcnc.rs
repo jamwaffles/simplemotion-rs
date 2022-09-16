@@ -173,6 +173,9 @@ fn inner() -> Result<(), Box<dyn Error>> {
                 if !argon.status()?.homing {
                     log::debug!("Oriented");
 
+                    // Reset homing flag so we can orient multiple times in a row
+                    argon.set_homing_complete();
+
                     pins.is_oriented.set_value(true)?;
 
                     state = State::Idle
