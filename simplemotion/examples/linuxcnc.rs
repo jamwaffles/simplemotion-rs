@@ -111,7 +111,7 @@ fn inner() -> Result<(), Box<dyn Error>> {
         pins.spindle_fb_rps.set_value(current_velocity_rps)?;
         pins.spindle_fb_rpm.set_value(current_velocity_rps * 60.0)?;
 
-        pins.drive_error.set_value(argon.faults().any());
+        pins.drive_error.set_value(argon.faults()?.any());
 
         match state {
             State::Idle => {
@@ -148,6 +148,8 @@ fn inner() -> Result<(), Box<dyn Error>> {
                 // If we couldn't clear faults, transition to idle. We can check pins.drive_error to
                 // report fault status.
                 if argon.faults()?.any() {
+                    log::error!("Could not clear faults");
+
                     state = State::Idle;
                 } else {
                     state = State::Spindle;
@@ -162,7 +164,7 @@ fn inner() -> Result<(), Box<dyn Error>> {
                     continue;
                 }
 
-                if (new_velocity_rps - current_velocity_setpoint_rps).abs() > 0.0001 {
+                if (new_velocity_rps - current_velocity_setpoint_rps).abs() > 0.01 {
                     log::debug!(
                         "Change setpoint from {} to {}",
                         current_velocity_setpoint_rps,

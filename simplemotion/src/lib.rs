@@ -254,7 +254,8 @@ impl Argon {
     pub fn setpoint_rps(&self) -> Result<f64, Error> {
         let feedback: f64 = self.absolute_setpoint()?.into();
 
-        let rps = (feedback * self.pid_freq) / (self.encoder_counts());
+        // FIXME: input_div just _happens_ to work - find out why/where/if it's correct
+        let rps = (feedback * self.pid_freq) / self.encoder_counts() / self.input_div;
 
         log::trace!("Feedback RPS {}", rps);
 
