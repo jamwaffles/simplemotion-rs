@@ -110,10 +110,14 @@ fn inner() -> Result<(), Box<dyn Error>> {
         match state {
             State::Idle => {
                 if orient_enable {
+                    log::debug!("Beginning orient...");
+
                     pins.is_oriented.set_value(false)?;
 
                     state = State::SwitchToOrient;
                 } else if new_velocity_rps != 0.0 {
+                    log::debug!("Switching to velocity mode...");
+
                     pins.is_oriented.set_value(false)?;
 
                     state = State::SwitchToSpindle;
@@ -128,13 +132,15 @@ fn inner() -> Result<(), Box<dyn Error>> {
             }
             State::Spindle => {
                 if orient_enable {
+                    log::debug!("Switching to orient");
+
                     state = State::SwitchToOrient;
 
                     continue;
                 }
 
                 if (new_velocity_rps - current_velocity_setpoint_rps).abs() > 0.0001 {
-                    log::trace!(
+                    log::debug!(
                         "Change setpoint from {} to {}",
                         current_velocity_setpoint_rps,
                         new_velocity_rps,
@@ -153,7 +159,7 @@ fn inner() -> Result<(), Box<dyn Error>> {
 
                 // Wait for velocity to reach zero before switching to orient mode.
                 if current_velocity_rps == 0.0 {
-                    log::trace!("Orient angle (degrees): {:?}", *pins.orient_angle.value()?);
+                    log::debug!("Orient angle (degrees): {:?}", *pins.orient_angle.value()?);
 
                     argon.home(*pins.orient_angle.value()?)?;
 
@@ -165,6 +171,8 @@ fn inner() -> Result<(), Box<dyn Error>> {
 
                 // Set status and change mode when orient completes
                 if !argon.status()?.homing {
+                    log::debug!("Oriented");
+
                     pins.is_oriented.set_value(true)?;
 
                     state = State::Idle
