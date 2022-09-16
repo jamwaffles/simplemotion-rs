@@ -134,7 +134,24 @@ fn inner() -> Result<(), Box<dyn Error>> {
 
                 argon.set_control_mode(ControlMode::Velocity)?;
 
-                state = State::Spindle;
+                argon.set_velocity_rps(0.0)?;
+
+                if argon.faults()?.any() {
+                    log::debug!(
+                        "Drive has faults: {:?}, attempting to reset",
+                        argon.faults()?
+                    );
+
+                    argon.clear_faults()?;
+                }
+
+                // If we couldn't clear faults, transition to idle. We can check pins.drive_error to
+                // report fault status.
+                if argon.faults()?.any() {
+                    state = State::Idle;
+                } else {
+                    state = State::Spindle;
+                }
             }
             State::Spindle => {
                 if orient_enable {
