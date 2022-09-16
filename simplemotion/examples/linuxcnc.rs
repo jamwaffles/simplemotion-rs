@@ -27,6 +27,9 @@ struct Comp {
 
     /// Current measured motor RPM.
     spindle_fb_rpm: OutputPin<f64>,
+
+    /// Whether the drive is in an error state or not.
+    drive_error: OutputPin<bool>,
 }
 
 impl Resources for Comp {
@@ -40,6 +43,7 @@ impl Resources for Comp {
             is_oriented: comp.register_pin("is-oriented")?,
             spindle_fb_rps: comp.register_pin("spindle-fb-rps")?,
             spindle_fb_rpm: comp.register_pin("spindle-fb-rpm")?,
+            drive_error: comp.register_pin("drive-error")?,
         })
     }
 }
@@ -106,6 +110,8 @@ fn inner() -> Result<(), Box<dyn Error>> {
 
         pins.spindle_fb_rps.set_value(current_velocity_rps)?;
         pins.spindle_fb_rpm.set_value(current_velocity_rps * 60.0)?;
+
+        pins.drive_error.set_value(argon.faults().any());
 
         match state {
             State::Idle => {

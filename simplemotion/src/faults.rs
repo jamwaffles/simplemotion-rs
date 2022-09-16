@@ -25,6 +25,27 @@ pub struct Faults {
     pub config: bool,
 }
 
+impl Faults {
+    pub fn any(&self) -> bool {
+        self.followerror
+            || self.overcurrent
+            || self.communication
+            || self.encoder
+            || self.overtemp
+            || self.undervoltage
+            || self.overvoltage
+            || self.program_or_mem
+            || self.hardware
+            || self.overvelocity
+            || self.init
+            || self.motion
+            || self.range
+            || self.pstage_forced_off
+            || self.host_comm_error
+            || self.config
+    }
+}
+
 impl From<u32> for Faults {
     fn from(other: u32) -> Self {
         Self {
