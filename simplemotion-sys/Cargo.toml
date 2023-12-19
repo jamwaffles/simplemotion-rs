@@ -22,7 +22,7 @@ circle-ci = { repository = "jamwaffles/simplemotion-rs", branch = "master" }
 [dependencies]
 
 [build-dependencies]
-bindgen = "0.60.1"
+bindgen = "0.69.1"
 cc = "1.0.59"
 
 [dev-dependencies]
