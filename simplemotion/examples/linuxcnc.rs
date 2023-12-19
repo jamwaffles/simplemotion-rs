@@ -6,8 +6,8 @@ use linuxcnc_hal::{
     RegisterResources, Resources,
 };
 use simplemotion::{Argon, ControlMode};
+use smol::{future, stream::StreamExt, LocalExecutor, Timer};
 use std::{error::Error, time::Duration};
-use smol::{future, LocalExecutor, Timer, stream::StreamExt};
 
 #[derive(Debug)]
 struct Comp {
@@ -88,13 +88,13 @@ fn inner() -> Result<(), Box<dyn Error>> {
         .expect("Device address must be a number from 1 - 255");
 
     let update_interval = std::env::args()
-        .nth(2)
+        .nth(3)
         .and_then(|interval| interval.parse().ok())
         .unwrap_or(DEFAULT_UPDATE_INTERVAL);
 
     let update_interval = Duration::from_millis(update_interval);
 
-    log::info!("Starting Argon driver using device {device}, drive address {address}");
+    log::info!("Starting Argon driver using device {device}, drive address {address}, update interval {} ms", update_interval.as_millis());
 
     let mut argon = Argon::connect(&device, address)?;
 
@@ -112,7 +112,7 @@ fn inner() -> Result<(), Box<dyn Error>> {
 
     let mut timer = Timer::interval(update_interval);
 
-   future::block_on(local_ex.run(async {
+    future::block_on(local_ex.run(async {
         // Main control loop
         while !comp.should_exit() {
             let current_velocity_setpoint_rps = argon.setpoint_rps()?;
