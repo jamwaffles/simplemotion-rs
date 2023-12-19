@@ -5,3 +5,7 @@ members = [
     "simplemotion",
 ]
 
+[patch.crates-io]
+linuxcnc-hal-sys = { path = "../linuxcnc-hal-rs/linuxcnc-hal-sys" }
+linuxcnc-hal = { path = "../linuxcnc-hal-rs/linuxcnc-hal" }
+rtapi-logger = { path = "../linuxcnc-hal-rs/rtapi-logger" }

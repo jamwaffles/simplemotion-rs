@@ -61,12 +61,12 @@ enum State {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let level = std::env::var("ARGON_LOG_LEVEL")
+    let _level = std::env::var("ARGON_LOG_LEVEL")
         .unwrap_or("info".to_string())
         .parse()
         .unwrap_or(log::LevelFilter::Info);
 
-    rtapi_logger::init(level);
+    rtapi_logger::init();
 
     match inner() {
         Ok(res) => Ok(res),
