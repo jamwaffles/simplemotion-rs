@@ -8,7 +8,7 @@ pub use parameters::ControlMode;
 use parameters::Parameter;
 use simplemotion_sys::{
     getCumulativeStatus, resetCumulativeStatus, smCloseBus, smOpenBus, smRead1Parameter,
-    smSetParameter,
+    smSetParameter, smSetTimeout,
 };
 pub use status::Status;
 pub use statuscode::StatusCode;
@@ -57,12 +57,18 @@ pub struct Argon {
 
     /// Read from `[DIV]`
     input_div: f64,
+
+    /// Device path, e.g. `/dev/ttyUSB0`.
+    device: String,
 }
 
 impl Argon {
     /// Attempt to connect to an Argon drive at the given device and address.
     pub fn connect(device: &str, address: u8) -> Result<Self, Error> {
         log::debug!("Open {}", device);
+
+        // Must be before bus open, must be between 1 and 5000ms
+        unsafe { smSetTimeout(1000) };
 
         let bus_handle = {
             let device = CString::new(device)
@@ -95,6 +101,7 @@ impl Argon {
             velocity_limit: 0.0,
             input_mul: 0.0,
             input_div: 0.0,
+            device: device.to_string(),
         };
 
         _self.pid_freq = _self.read_parameter(Parameter::PIDFrequency)?.into();
@@ -108,6 +115,31 @@ impl Argon {
         Ok(_self)
     }
 
+    /// Close and reopen connection to the drive.
+    pub fn reconnect(&mut self) -> Result<(), Error> {
+        // Close bus. We'll ignore any errors here.
+        let result = unsafe { smCloseBus(self.bus_handle) };
+
+        log::info!("Closing bus, status {}", result);
+
+        let bus_handle = {
+            let device = CString::new(self.device.clone())
+                .expect("Device name could not be converted to a valid C string");
+
+            let handle: i64 = unsafe { smOpenBus(device.as_ptr()) };
+
+            if handle >= 0 {
+                Ok(handle)
+            } else {
+                Err(Error::OpenFailed(handle.into()))
+            }
+        }?;
+
+        self.bus_handle = bus_handle;
+
+        Ok(())
+    }
+
     /// Encoder counts.
     pub fn encoder_counts(&self) -> f64 {
         self.encoder_counts
@@ -118,8 +150,6 @@ impl Argon {
     where
         V: Into<i32>,
     {
-        // TODO: Check that bus is open
-
         let value = value.into();
 
         let result: StatusCode =

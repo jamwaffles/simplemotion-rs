@@ -112,112 +112,21 @@ fn inner() -> Result<(), Box<dyn Error>> {
 
     let mut timer = Timer::interval(update_interval);
 
+    let mut error = false;
+
     future::block_on(local_ex.run(async {
         // Main control loop
         while !comp.should_exit() {
-            let current_velocity_setpoint_rps = argon.setpoint_rps()?;
-            let new_velocity_rps = *pins.spindle_speed_rps.value()?;
-            let current_velocity_rps = argon.velocity_rps()?;
+            if error {
+                error = argon.reconnect().is_err();
+            }
 
-            let orient_enable = *pins.orient_enable.value()?;
+            match loop_tick(&mut argon, &pins, state).await {
+                Ok(new_state) => state = new_state,
+                Err(e) => {
+                    log::error!("Argon driver error: {}, attempting to reconnect", e);
 
-            pins.spindle_fb_rps.set_value(current_velocity_rps)?;
-            pins.spindle_fb_rpm.set_value(current_velocity_rps * 60.0)?;
-
-            pins.drive_error.set_value(argon.faults()?.any())?;
-
-            match state {
-                State::Idle => {
-                    if orient_enable {
-                        log::debug!("Beginning orient...");
-
-                        pins.is_oriented.set_value(false)?;
-
-                        state = State::SwitchToOrient;
-                    } else if new_velocity_rps != 0.0 {
-                        log::debug!("Switching to velocity mode...");
-
-                        pins.is_oriented.set_value(false)?;
-
-                        state = State::SwitchToSpindle;
-                    }
-                }
-                State::SwitchToSpindle => {
-                    log::trace!("Switching to spindle mode...");
-
-                    argon.set_control_mode(ControlMode::Velocity)?;
-
-                    argon.set_velocity_rps(0.0)?;
-
-                    if argon.faults()?.any() {
-                        log::debug!(
-                            "Drive has faults: {:?}, attempting to reset",
-                            argon.faults()?
-                        );
-
-                        argon.clear_faults()?;
-                    }
-
-                    // If we couldn't clear faults, transition to idle. We can check pins.drive_error to
-                    // report fault status.
-                    if argon.faults()?.any() {
-                        log::error!("Could not clear faults");
-
-                        state = State::Idle;
-                    } else {
-                        state = State::Spindle;
-                    }
-                }
-                State::Spindle => {
-                    if orient_enable {
-                        log::debug!("Switching to orient");
-
-                        state = State::SwitchToOrient;
-
-                        continue;
-                    }
-
-                    if (new_velocity_rps - current_velocity_setpoint_rps).abs() > 0.01 {
-                        log::debug!(
-                            "Change setpoint from {} to {}",
-                            current_velocity_setpoint_rps,
-                            new_velocity_rps,
-                        );
-
-                        argon.set_velocity_rps(new_velocity_rps)?;
-                    }
-                }
-                State::SwitchToOrient => {
-                    log::trace!(
-                        "Switching to orient... spindle vel: {}",
-                        current_velocity_rps
-                    );
-
-                    argon.set_velocity_rps(0.0)?;
-
-                    // Wait for velocity to reach zero before switching to orient mode.
-                    if current_velocity_rps == 0.0 {
-                        log::debug!("Orient angle (degrees): {:?}", *pins.orient_angle.value()?);
-
-                        argon.home(*pins.orient_angle.value()?)?;
-
-                        state = State::Orienting
-                    }
-                }
-                State::Orienting => {
-                    log::trace!("Orienting...");
-
-                    // Set status and change mode when orient completes
-                    if !argon.status()?.homing {
-                        log::debug!("Oriented");
-
-                        // Reset homing flag so we can orient multiple times in a row
-                        argon.set_homing_complete()?;
-
-                        pins.is_oriented.set_value(true)?;
-
-                        state = State::Idle
-                    }
+                    error = true;
                 }
             }
 
@@ -232,4 +141,114 @@ fn inner() -> Result<(), Box<dyn Error>> {
     argon.set_velocity_rps(0.0)?;
 
     Ok(())
+}
+
+async fn loop_tick(
+    argon: &mut Argon,
+    pins: &Comp,
+    mut state: State,
+) -> Result<State, Box<dyn Error>> {
+    let current_velocity_setpoint_rps = argon.setpoint_rps()?;
+    let new_velocity_rps = *pins.spindle_speed_rps.value()?;
+    let current_velocity_rps = argon.velocity_rps()?;
+
+    let orient_enable = *pins.orient_enable.value()?;
+
+    pins.spindle_fb_rps.set_value(current_velocity_rps)?;
+    pins.spindle_fb_rpm.set_value(current_velocity_rps * 60.0)?;
+
+    pins.drive_error.set_value(argon.faults()?.any())?;
+
+    match state {
+        State::Idle => {
+            if orient_enable {
+                log::debug!("Beginning orient...");
+
+                pins.is_oriented.set_value(false)?;
+
+                state = State::SwitchToOrient;
+            } else if new_velocity_rps != 0.0 {
+                log::debug!("Switching to velocity mode...");
+
+                pins.is_oriented.set_value(false)?;
+
+                state = State::SwitchToSpindle;
+            }
+        }
+        State::SwitchToSpindle => {
+            log::trace!("Switching to spindle mode...");
+
+            argon.set_control_mode(ControlMode::Velocity)?;
+
+            argon.set_velocity_rps(0.0)?;
+
+            if argon.faults()?.any() {
+                log::debug!(
+                    "Drive has faults: {:?}, attempting to reset",
+                    argon.faults()?
+                );
+
+                argon.clear_faults()?;
+            }
+
+            // If we couldn't clear faults, transition to idle. We can check pins.drive_error to
+            // report fault status.
+            if argon.faults()?.any() {
+                log::error!("Could not clear faults");
+
+                state = State::Idle;
+            } else {
+                state = State::Spindle;
+            }
+        }
+        State::Spindle => {
+            if orient_enable {
+                log::debug!("Switching to orient");
+
+                state = State::SwitchToOrient;
+            } else if (new_velocity_rps - current_velocity_setpoint_rps).abs() > 0.01 {
+                log::debug!(
+                    "Change setpoint from {} to {}",
+                    current_velocity_setpoint_rps,
+                    new_velocity_rps,
+                );
+
+                argon.set_velocity_rps(new_velocity_rps)?;
+            }
+        }
+        State::SwitchToOrient => {
+            log::trace!(
+                "Switching to orient... spindle vel: {}",
+                current_velocity_rps
+            );
+
+            argon.set_velocity_rps(0.0)?;
+
+            // Wait for velocity to reach zero before switching to orient mode.
+            if current_velocity_rps == 0.0 {
+                log::debug!("Orient angle (degrees): {:?}", *pins.orient_angle.value()?);
+
+                argon.home(*pins.orient_angle.value()?)?;
+
+                state = State::Orienting
+            }
+        }
+        State::Orienting => {
+            log::trace!("Orienting...");
+
+            // Set status and change mode when orient completes
+            if !argon.status()?.homing {
+                log::debug!("Oriented");
+
+                // Reset homing flag so we can orient multiple times in a row
+                argon.set_homing_complete()?;
+
+                pins.is_oriented.set_value(true)?;
+
+                state = State::Idle
+            }
+        }
+    }
+
+    Ok(state)
 }
