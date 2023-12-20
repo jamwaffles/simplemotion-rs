@@ -8,7 +8,7 @@ pub use parameters::ControlMode;
 use parameters::Parameter;
 use simplemotion_sys::{
     getCumulativeStatus, resetCumulativeStatus, smCloseBus, smOpenBus, smRead1Parameter,
-    smSetParameter, smSetTimeout,
+    smSetBaudrate, smSetParameter, smSetTimeout,
 };
 pub use status::Status;
 pub use statuscode::StatusCode;
@@ -104,9 +104,12 @@ impl Argon {
             device: device.to_string(),
         };
 
+        // _self.set_parameter(Parameter::BusSpeed, 115200)?;
+        // _self.reconnect()?;
+
         _self.pid_freq = _self.read_parameter(Parameter::PIDFrequency)?.into();
         _self.encoder_counts = f64::from(_self.read_parameter(Parameter::EncoderPpr)?) * 4.0;
-        _self.velocity_limit = f64::from(_self.read_parameter(Parameter::VelocityLImit)?);
+        _self.velocity_limit = f64::from(_self.read_parameter(Parameter::VelocityLimit)?);
         _self.input_mul = f64::from(_self.read_parameter(Parameter::InputMul)?);
         _self.input_div = f64::from(_self.read_parameter(Parameter::InputDiv)?);
 
@@ -120,7 +123,9 @@ impl Argon {
         // Close bus. We'll ignore any errors here.
         let result = unsafe { smCloseBus(self.bus_handle) };
 
-        log::info!("Closing bus, status {}", result);
+        log::debug!("Closing bus, status {}", result);
+
+        // unsafe { smSetBaudrate(115200) };
 
         let bus_handle = {
             let device = CString::new(self.device.clone())
@@ -134,6 +139,8 @@ impl Argon {
                 Err(Error::OpenFailed(handle.into()))
             }
         }?;
+
+        log::info!("--> Reconnected");
 
         self.bus_handle = bus_handle;
 

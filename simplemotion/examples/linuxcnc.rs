@@ -114,27 +114,28 @@ fn inner() -> Result<(), Box<dyn Error>> {
 
     let mut error = false;
 
-    future::block_on(local_ex.run(async {
-        // Main control loop
-        while !comp.should_exit() {
-            if error {
-                error = argon.reconnect().is_err();
-            }
-
-            match loop_tick(&mut argon, &pins, state).await {
-                Ok(new_state) => state = new_state,
-                Err(e) => {
-                    log::error!("Argon driver error: {}, attempting to reconnect", e);
-
-                    error = true;
-                }
-            }
-
-            timer.next().await;
+    // future::block_on(local_ex.run(async {
+    // Main control loop
+    while !comp.should_exit() {
+        if error {
+            error = argon.reconnect().is_err();
         }
 
-        Ok::<(), Box<dyn Error>>(())
-    }))?;
+        match loop_tick(&mut argon, &pins, state) {
+            Ok(new_state) => state = new_state,
+            Err(e) => {
+                log::error!("Argon driver error: {}, attempting to reconnect", e);
+
+                error = true;
+            }
+        }
+
+        // timer.next().await;
+        std::thread::sleep(update_interval);
+    }
+
+    //     Ok::<(), Box<dyn Error>>(())
+    // }))?;
 
     // Bare minimum safe state on shutdown.
     // FIXME: Check if I need to set anything else.
@@ -143,11 +144,7 @@ fn inner() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-async fn loop_tick(
-    argon: &mut Argon,
-    pins: &Comp,
-    mut state: State,
-) -> Result<State, Box<dyn Error>> {
+fn loop_tick(argon: &mut Argon, pins: &Comp, mut state: State) -> Result<State, Box<dyn Error>> {
     let current_velocity_setpoint_rps = argon.setpoint_rps()?;
     let new_velocity_rps = *pins.spindle_speed_rps.value()?;
     let current_velocity_rps = argon.velocity_rps()?;
