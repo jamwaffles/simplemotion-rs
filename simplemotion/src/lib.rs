@@ -7,8 +7,7 @@ pub use faults::Faults;
 pub use parameters::ControlMode;
 use parameters::Parameter;
 use simplemotion_sys::{
-    getCumulativeStatus, resetCumulativeStatus, smCloseBus, smOpenBus, smRead1Parameter,
-    smSetBaudrate, smSetParameter, smSetTimeout,
+    getCumulativeStatus, resetCumulativeStatus, smCloseBus, smOpenBus, smRead1Parameter, smSetParameter, smSetTimeout,
 };
 pub use status::Status;
 pub use statuscode::StatusCode;

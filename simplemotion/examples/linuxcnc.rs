@@ -6,7 +6,7 @@ use linuxcnc_hal::{
     RegisterResources, Resources,
 };
 use simplemotion::{Argon, ControlMode};
-use smol::{future, stream::StreamExt, LocalExecutor, Timer};
+use smol::{LocalExecutor, Timer};
 use std::{error::Error, time::Duration};
 
 #[derive(Debug)]
@@ -108,9 +108,9 @@ fn inner() -> Result<(), Box<dyn Error>> {
     // Initial state on startup.
     let mut state = State::Idle;
 
-    let local_ex = LocalExecutor::new();
+    let _local_ex = LocalExecutor::new();
 
-    let mut timer = Timer::interval(update_interval);
+    let _timer = Timer::interval(update_interval);
 
     let mut error = false;
 
