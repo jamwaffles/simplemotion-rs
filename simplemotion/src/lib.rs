@@ -68,7 +68,7 @@ impl Argon {
         log::debug!("Open {}", device);
 
         // Must be before bus open, must be between 1 and 5000ms
-        unsafe { smSetTimeout(1000) };
+        unsafe { smSetTimeout(100) };
 
         let bus_handle = {
             let device = CString::new(device)
